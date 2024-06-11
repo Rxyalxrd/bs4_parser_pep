@@ -1,6 +1,6 @@
-import logging
 import csv
 import datetime as dt
+import logging
 
 from prettytable import PrettyTable
 

@@ -2,14 +2,14 @@ import logging
 import re
 from urllib.parse import urljoin
 
-from bs4 import BeautifulSoup
 import requests_cache
+from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-from constants import BASE_DIR, MAIN_DOC_URL, MAIN_PEP_URL, EXPECTED_STATUS
 from configs import configure_argument_parser, configure_logging
+from constants import BASE_DIR, EXPECTED_STATUS, MAIN_DOC_URL, MAIN_PEP_URL
 from outputs import control_output
-from utils import get_response, find_tag
+from utils import find_tag, get_response
 
 
 def whats_new(session):
@@ -118,18 +118,6 @@ def download(session):
 
 def pep(session):
 
-    counter = {
-        'Accepted': 0,
-        'Active': 0,
-        'Deferred': 0,
-        'Draft': 0,
-        'Final': 0,
-        'Provisional': 0,
-        'Rejected': 0,
-        'Superseded': 0,
-        'Withdrawn': 0
-    }
-
     response = get_response(session, MAIN_PEP_URL)
 
     if response is None:
@@ -154,20 +142,21 @@ def pep(session):
         pep_information = find_tag(pep_soup, 'dl')
 
         pep_statuses = find_tag(
-            pep_information, lambda tag: tag.name == 'dt' and 'Status' in tag.text
+            pep_information,
+            lambda tag: tag.name == 'dt' and 'Status' in tag.text
         )
 
         pep_status = pep_statuses.find_next_sibling().text
 
         try:
-            counter[pep_status] += 1
+            EXPECTED_STATUS[pep_status] += 1
         except KeyError:
             logging.info('Указанного статуса нету')
 
         results = [('Статус', 'Количество')]
         total_value = 0
 
-        for key, value in counter.items():
+        for key, value in EXPECTED_STATUS.items():
             results.append((key, value))
             total_value += value
 
