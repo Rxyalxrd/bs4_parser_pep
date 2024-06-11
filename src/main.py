@@ -166,6 +166,7 @@ def pep(session):
 
         results = [('Статус', 'Количество')]
         total_value = 0
+
         for key, value in counter.items():
             results.append((key, value))
             total_value += value
