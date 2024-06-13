@@ -10,19 +10,27 @@ from configs import configure_argument_parser, configure_logging
 from constants import BASE_DIR, EXPECTED_STATUS, MAIN_DOC_URL, MAIN_PEP_URL
 from outputs import control_output
 from utils import find_tag, get_response
+from exceptions import EmptyResponse
 
 
-def whats_new(session):
-    whats_new_url = urljoin(MAIN_DOC_URL, 'whatsnew/')
-
-    response = get_response(session, whats_new_url)
+def custom_response(session, url):
+    response = get_response(session, url)
 
     if response is None:
         return
 
     soup = BeautifulSoup(response.text, features='lxml')
 
-    main_div = find_tag(soup, 'section', attrs={'id': 'what-s-new-in-python'})
+    return soup
+
+
+def whats_new(session):
+    whats_new_url = urljoin(MAIN_DOC_URL, 'whatsnew/')
+
+    main_div = find_tag(
+        custom_response(session, whats_new_url), 'section',
+        attrs={'id': 'what-s-new-in-python'}
+    )
 
     div_with_ul = find_tag(main_div, 'div', attrs={'class': 'toctree-wrapper'})
 
@@ -35,14 +43,8 @@ def whats_new(session):
     for section in tqdm(sections_by_python):
         version_a_tag = section.find('a')
         version_link = urljoin(whats_new_url, version_a_tag['href'])
-        response = get_response(session, whats_new_url)
-
-        if response is None:
-            continue
-
-        soup = BeautifulSoup(response.text, 'lxml')
-        h1 = find_tag(soup, 'h1')
-        dl = find_tag(soup, 'h1')
+        h1 = find_tag(custom_response(session, whats_new_url), 'h1')
+        dl = find_tag(custom_response(session, whats_new_url), 'h1')
 
         results.append(
             (version_link, h1.text, dl.text)
@@ -53,14 +55,9 @@ def whats_new(session):
 
 def latest_versions(session):
 
-    response = get_response(session, MAIN_DOC_URL)
-
-    if response is None:
-        return
-
-    soup = BeautifulSoup(response.text, features='lxml')
-
-    sidebar = find_tag(soup, 'div', {'class': 'sphinxsidebarwrapper'})
+    sidebar = find_tag(
+        custom_response, 'div', {'class': 'sphinxsidebarwrapper'}
+    )
     ul_tags = sidebar.find_all('ul')
 
     for ul in ul_tags:
@@ -68,7 +65,7 @@ def latest_versions(session):
             a_tags = ul.find_all('a')
             break
     else:
-        raise Exception('Ничего не нашлось')
+        raise EmptyResponse('Ничего не нашлось')
 
     results = [('Ссылка на документацию', 'Версия', 'Статус')]
     pattern = r'Python (?P<version>\d\.\d+) \((?P<status>.*)\)'
@@ -88,14 +85,9 @@ def latest_versions(session):
 def download(session):
     downloads_url = urljoin(MAIN_DOC_URL, 'download.html')
 
-    response = get_response(session, downloads_url)
-
-    if response is None:
-        return
-
-    soup = BeautifulSoup(response.text, features='lxml')
-
-    main_tag = find_tag(soup, 'div', {'role': 'main'})
+    main_tag = find_tag(
+        custom_response(session, downloads_url), 'div', {'role': 'main'}
+    )
     table_tag = find_tag(main_tag, 'table', {'class': 'docutils'})
     pdf_a4_tag = find_tag(
         table_tag, 'a', {'href': re.compile(r'.+pdf-a4\.zip$')}
@@ -118,28 +110,19 @@ def download(session):
 
 def pep(session):
 
-    response = get_response(session, MAIN_PEP_URL)
+    logs_error = []
 
-    if response is None:
-        return
-
-    soup = BeautifulSoup(response.text, features='lxml')
-
-    numerical_index = find_tag(soup, 'section', {'id': 'numerical-index'})
+    numerical_index = find_tag(
+        custom_response(session, MAIN_PEP_URL), 'section',
+        {'id': 'numerical-index'}
+    )
     table_tags = numerical_index.find_all('tr')
 
     for tag in tqdm(table_tags[1:], desc='Смотрю статусы PEP'):
         pep_link = tag.td.find_next_sibling().find('a')['href']
         pep_url = urljoin(MAIN_PEP_URL, pep_link)
 
-        pep_response = get_response(session, pep_url)
-
-        if pep_response is None:
-            return
-
-        pep_soup = BeautifulSoup(pep_response.text, features='lxml')
-
-        pep_information = find_tag(pep_soup, 'dl')
+        pep_information = find_tag(custom_response(session, pep_url), 'dl')
 
         pep_statuses = find_tag(
             pep_information,
@@ -151,18 +134,17 @@ def pep(session):
         try:
             EXPECTED_STATUS[pep_status] += 1
         except KeyError:
-            logging.info('Указанного статуса нету')
+            logs_error.append(logging.info(f'статуса {pep_status} нету'))
 
         results = [('Статус', 'Количество')]
-        total_value = 0
 
-        for key, value in EXPECTED_STATUS.items():
-            results.append((key, value))
-            total_value += value
+        total_value = sum(EXPECTED_STATUS.values())
+        results.extend(EXPECTED_STATUS.items())
 
         results.append(('Total', total_value))
 
-    print(results)
+    print(logs_error)
+
     return results
 
 
