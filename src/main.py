@@ -26,7 +26,7 @@ def whats_new(session):
         'li', attrs={'class': 'toctree-l1'}
     )
 
-    results = [('Ссылка на статью', 'Заголовок', 'Редактор, Автор')]
+    results = [('Ссылка на статью', 'Заголовок', 'Редактор, автор')]
 
     for section in tqdm(sections_by_python):
         version_a_tag = section.find('a')
