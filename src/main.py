@@ -1,14 +1,14 @@
 import logging
 import re
 from urllib.parse import urljoin
-
+from bs4 import BeautifulSoup
 import requests_cache
 from tqdm import tqdm
 
 from configs import configure_argument_parser, configure_logging
 from constants import BASE_DIR, EXPECTED_STATUS, MAIN_DOC_URL, MAIN_PEP_URL
 from outputs import control_output
-from utils import find_tag, custom_response
+from utils import find_tag, custom_response, get_response
 from exceptions import EmptyResponseException
 
 
@@ -31,11 +31,12 @@ def whats_new(session):
     for section in tqdm(sections_by_python):
         version_a_tag = section.find('a')
         version_link = urljoin(whats_new_url, version_a_tag['href'])
-        h1 = find_tag(custom_response(session, whats_new_url), 'h1')
-        dl = find_tag(custom_response(session, whats_new_url), 'h1')
+        h1 = find_tag(custom_response(session, version_link), 'h1')
+        dl = find_tag(custom_response(session, version_link), 'dl')
+        dl_text = dl.text.replace('\n', ' ')
 
         results.append(
-            (version_link, h1.text, dl.text)
+            (version_link, h1.text, dl_text)
         )
 
     return results
