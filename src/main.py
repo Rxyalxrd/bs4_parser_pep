@@ -1,14 +1,14 @@
 import logging
 import re
 from urllib.parse import urljoin
-from bs4 import BeautifulSoup
+
 import requests_cache
 from tqdm import tqdm
 
 from configs import configure_argument_parser, configure_logging
 from constants import BASE_DIR, EXPECTED_STATUS, MAIN_DOC_URL, MAIN_PEP_URL
 from outputs import control_output
-from utils import find_tag, custom_response, get_response
+from utils import find_tag, custom_response
 from exceptions import EmptyResponseException
 
 
