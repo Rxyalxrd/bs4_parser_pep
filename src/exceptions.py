@@ -3,6 +3,6 @@ class ParserFindTagException(Exception):
     pass
 
 
-class EmptyResponse(Exception):
+class EmptyResponseException(Exception):
     """Вызывается, когда парсер не может найти 'All versions'"""
     pass

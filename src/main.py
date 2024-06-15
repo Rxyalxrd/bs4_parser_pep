@@ -3,25 +3,13 @@ import re
 from urllib.parse import urljoin
 
 import requests_cache
-from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 from configs import configure_argument_parser, configure_logging
 from constants import BASE_DIR, EXPECTED_STATUS, MAIN_DOC_URL, MAIN_PEP_URL
 from outputs import control_output
-from utils import find_tag, get_response
-from exceptions import EmptyResponse
-
-
-def custom_response(session, url):
-    response = get_response(session, url)
-
-    if response is None:
-        return
-
-    soup = BeautifulSoup(response.text, features='lxml')
-
-    return soup
+from utils import find_tag, custom_response
+from exceptions import EmptyResponseException
 
 
 def whats_new(session):
@@ -65,7 +53,7 @@ def latest_versions(session):
             a_tags = ul.find_all('a')
             break
     else:
-        raise EmptyResponse('Ничего не нашлось')
+        raise EmptyResponseException('Ничего не нашлось')
 
     results = [('Ссылка на документацию', 'Версия', 'Статус')]
     pattern = r'Python (?P<version>\d\.\d+) \((?P<status>.*)\)'
@@ -138,12 +126,10 @@ def pep(session):
 
         results = [('Статус', 'Количество')]
 
-        total_value = sum(EXPECTED_STATUS.values())
         results.extend(EXPECTED_STATUS.items())
 
-        results.append(('Total', total_value))
-
-    print(logs_error)
+    total_value = sum(EXPECTED_STATUS.values())
+    results.append(('Total', total_value))
 
     return results
 
