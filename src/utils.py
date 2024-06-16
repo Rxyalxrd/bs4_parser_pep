@@ -26,7 +26,7 @@ def find_tag(soup, tag, attrs=None):
     return searched_tag
 
 
-def custom_response(session, url):
+def create_soup(session, url):
     response = get_response(session, url)
 
     if response is None:

@@ -8,7 +8,7 @@ from tqdm import tqdm
 from configs import configure_argument_parser, configure_logging
 from constants import BASE_DIR, EXPECTED_STATUS, MAIN_DOC_URL, MAIN_PEP_URL
 from outputs import control_output
-from utils import find_tag, custom_response
+from utils import find_tag, create_soup
 from exceptions import EmptyResponseException
 
 
@@ -16,7 +16,7 @@ def whats_new(session):
     whats_new_url = urljoin(MAIN_DOC_URL, 'whatsnew/')
 
     main_div = find_tag(
-        custom_response(session, whats_new_url), 'section',
+        create_soup(session, whats_new_url), 'section',
         attrs={'id': 'what-s-new-in-python'}
     )
 
@@ -31,8 +31,8 @@ def whats_new(session):
     for section in tqdm(sections_by_python):
         version_a_tag = section.find('a')
         version_link = urljoin(whats_new_url, version_a_tag['href'])
-        h1 = find_tag(custom_response(session, version_link), 'h1')
-        dl = find_tag(custom_response(session, version_link), 'dl')
+        h1 = find_tag(create_soup(session, version_link), 'h1')
+        dl = find_tag(create_soup(session, version_link), 'dl')
         dl_text = dl.text.replace('\n', ' ')
 
         results.append(
@@ -45,7 +45,7 @@ def whats_new(session):
 def latest_versions(session):
 
     sidebar = find_tag(
-        custom_response, 'div', {'class': 'sphinxsidebarwrapper'}
+        create_soup, 'div', {'class': 'sphinxsidebarwrapper'}
     )
     ul_tags = sidebar.find_all('ul')
 
@@ -75,7 +75,7 @@ def download(session):
     downloads_url = urljoin(MAIN_DOC_URL, 'download.html')
 
     main_tag = find_tag(
-        custom_response(session, downloads_url), 'div', {'role': 'main'}
+        create_soup(session, downloads_url), 'div', {'role': 'main'}
     )
     table_tag = find_tag(main_tag, 'table', {'class': 'docutils'})
     pdf_a4_tag = find_tag(
@@ -102,7 +102,7 @@ def pep(session):
     logs_error = []
 
     numerical_index = find_tag(
-        custom_response(session, MAIN_PEP_URL), 'section',
+        create_soup(session, MAIN_PEP_URL), 'section',
         {'id': 'numerical-index'}
     )
     table_tags = numerical_index.find_all('tr')
@@ -111,7 +111,7 @@ def pep(session):
         pep_link = tag.td.find_next_sibling().find('a')['href']
         pep_url = urljoin(MAIN_PEP_URL, pep_link)
 
-        pep_information = find_tag(custom_response(session, pep_url), 'dl')
+        pep_information = find_tag(create_soup(session, pep_url), 'dl')
 
         pep_statuses = find_tag(
             pep_information,
@@ -125,10 +125,9 @@ def pep(session):
         except KeyError:
             logs_error.append(logging.info(f'статуса {pep_status} нету'))
 
-        results = [('Статус', 'Количество')]
+    results = [('Статус', 'Количество')]
 
-        results.extend(EXPECTED_STATUS.items())
-
+    results.extend(EXPECTED_STATUS.items())
     total_value = sum(EXPECTED_STATUS.values())
     results.append(('Total', total_value))
 
